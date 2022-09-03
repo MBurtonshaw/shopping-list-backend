@@ -74,8 +74,8 @@ app.use((req, res) => {
     await sequelize.sync({ force: true });
     try {
         const list_item = await List.create({
-            item: 'Toothpaste',
-            price: 2.99,
+            item: 'Toilet Paper',
+            price: 4.99,
             category: 'Bathroom',
             quantity: 1
         });

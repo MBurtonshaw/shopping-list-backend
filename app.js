@@ -1,13 +1,10 @@
 const express = require('express');
-const { List } = require('./models');
 
 const Sequelize = require('sequelize');
 const sequelize = new Sequelize({
     'dialect': 'sqlite',
     'storage': 'shopping-list.db'
 });
-
-console.log(List);
 
 const app = express();
 
@@ -19,22 +16,59 @@ app.use(cors());
 
 const { asyncHandler } = require('./middleware/asyncHandler');
 
-app.route('/')
+const Item = sequelize.define("Item", {
+  name: {
+    type: Sequelize.STRING,
+  },
+  quantity: {
+    type: Sequelize.INTEGER,
+  },
+  price: {
+    type: Sequelize.STRING,
+  },
+  is_grocery: {
+    type: Sequelize.BOOLEAN,
+  },
+  is_pet: {
+    type: Sequelize.BOOLEAN,
+  },
+  is_hardware: {
+    type: Sequelize.BOOLEAN,
+  }
+});
+
+app.route('/grocery-store')
     .get( asyncHandler( async(req, res, next) => {
       try {
-      let list = await List.findAll();
+      let list = await Item.findAll();
       res.status(200).json({list});
       } catch(err) {
         res.status(500);
         console.log(err);
       }
-    }))
-    .post((req, res, next) => {
-        ''
-    })
-    .put((req, res, next) => {
-        ''
-    });
+    }));
+
+app.route('/hardware-store')
+    .get( asyncHandler( async(req, res, next) => {
+      try {
+      let list = await Item.findAll();
+      res.status(200).json({list});
+      } catch(err) {
+        res.status(500);
+        console.log(err);
+      }
+    }));
+
+app.route('/pet-store')
+    .get( asyncHandler( async(req, res, next) => {
+      try {
+      let list = await Item.findAll();
+      res.status(200).json({list});
+      } catch(err) {
+        res.status(500);
+        console.log(err);
+      }
+    }));
 
 app.get('/api/list', asyncHandler( async(req, res) => {
     
@@ -71,16 +105,21 @@ app.use((req, res) => {
 //IIFE
 
 (async () => {
-    await sequelize.sync({ force: true });
-    try {
-        const list_item = await List.create({
-            item: 'Toilet Paper',
-            price: 4.99,
-            category: 'Bathroom',
-            quantity: 1
-        });
-        console.log(list_item.toJSON());
-    } catch(err) {
-        console.error('Error: ', err);
-    }
+  try{
+  //testing db connection & force-syncing
+  await sequelize.authenticate();
+  console.log('Step 1: complete. Connection established.');
+  await sequelize.sync({force: true});
+  await Item.create({
+    "name": "cereal",
+    "quantity": 2,
+    "price": 2.99,
+    "is_grocery": true,
+    "is_pet": true,
+    "is_hardware": true
+  });
+  console.log('Step 2: complete. Database is synced.');
+  } catch(error) {
+      console.log('Error connecting to database');
+  }
 })();

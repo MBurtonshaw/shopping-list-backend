@@ -37,8 +37,19 @@ const Item = sequelize.define("Item", {
   }
 });
 
-app.route('/grocery-store')
-    .get( asyncHandler( async(req, res, next) => {
+(async () => {
+  try{
+  //testing db connection & force-syncing
+  await sequelize.authenticate();
+  console.log('Step 1: complete. Connection established.');
+  await sequelize.sync();
+  console.log('Step 2: complete. Database is synced.');
+  } catch(error) {
+      console.log('Error connecting to database');
+  }
+})();
+
+app.get('/grocery-store', asyncHandler( async(req, res, next) => {
       try {
       let list = await Item.findAll();
       res.status(200).json({list});
@@ -47,6 +58,78 @@ app.route('/grocery-store')
         console.log(err);
       }
     }));
+    
+app.post('/grocery-store', asyncHandler( async(req, res, next) => {
+      if (req.body) {
+        try {
+          let item = await Item.create(req.body);
+          res.setHeader('Location', '/grocery-store/' + item.id);
+          res.status(201).end();
+        } catch(error) {
+          if (error.name === 'SequelizeValidationError' || error.name === 'SequelizeUniqueConstraintError') {
+            const errors = error.errors.map(err => err.message);
+            res.status(400).json({ errors });   
+        } else {
+          throw error;
+        }
+      }
+    } else {
+      res.status(403).json({message: 'Error: something went wrong'});
+    }
+  }
+    )
+  );
+
+  app.get('edit/:id', asyncHandler( async(req, res) => {
+    let item = await Item.findByPk(req.params.id);
+    res.status(200).json({ item });
+  }));
+
+  app.put('/edit/:id', asyncHandler( async(req, res) => {
+    let item = await Item.findByPk(req.params.id);
+    if (item) {
+        try {
+          await item.update(req.body);
+          res.status(204).end();
+        } catch(error) {
+          if (error.name === 'SequelizeValidationError' || error.name === 'SequelizeUniqueConstraintError') {
+            const errors = error.errors.map(err => err.message);
+            res.status(400).json({ errors });   
+          } else {
+            throw error;
+          }
+        }
+    } else {
+        res.status(403).json({message: 'Error: invalid credentials'});
+      } 
+    }
+  ));
+
+  app.get('/delete/:id', asyncHandler( async(req, res) => {
+    let item = await Item.findByPk(req.params.id);
+    if (item) {
+      try {
+        res.status(200).json(item);
+      } catch(err) {
+        res.status(500);
+        console.log(err.message);
+      }
+    }
+  }));
+
+  app.delete('/delete/:id', asyncHandler( async(req, res) => {
+    let item = await Item.findByPk(req.params.id);
+    if (item) {
+        try {
+          let item = await Item.findByPk(req.params.id);
+          item.destroy();
+          res.status(204).end();
+        } catch(err) {
+          console.log(err.message)
+        }
+      } 
+    }
+  ));
 
 app.route('/hardware-store')
     .get( asyncHandler( async(req, res, next) => {
@@ -104,22 +187,3 @@ app.use((req, res) => {
 
 //IIFE
 
-(async () => {
-  try{
-  //testing db connection & force-syncing
-  await sequelize.authenticate();
-  console.log('Step 1: complete. Connection established.');
-  await sequelize.sync({force: true});
-  await Item.create({
-    "name": "cereal",
-    "quantity": 2,
-    "price": 2.99,
-    "is_grocery": true,
-    "is_pet": true,
-    "is_hardware": true
-  });
-  console.log('Step 2: complete. Database is synced.');
-  } catch(error) {
-      console.log('Error connecting to database');
-  }
-})();
